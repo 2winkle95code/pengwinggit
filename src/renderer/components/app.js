@@ -300,7 +300,7 @@ function drawGraph() {
 
     if (c.parents.length > 1) {
       // Merge commit: filled ring
-      ctx.fillStyle = 'var(--bg-primary)';
+      ctx.fillStyle = '#0d1117';
       ctx.fill();
       ctx.strokeStyle = color;
       ctx.lineWidth = 2;

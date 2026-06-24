@@ -44,8 +44,7 @@ app.whenReady().then(() => {
     app.isPackaged ? 1 : 2
   );
   const repoArg = args.find(
-    (a) => !a.startsWith('-') && !a.startsWith('/')
-      || a.startsWith('/') && !a.startsWith('//')
+    (a) => !a.startsWith('-') && !a.startsWith('--')
   );
   if (repoArg) {
     mainWindow.webContents.once('did-finish-load', () => {

@@ -41,6 +41,7 @@ const $tagList = document.getElementById('tagList');
 const $stashList = document.getElementById('stashList');
 const $repoName = document.getElementById('repoName');
 const $search = document.getElementById('searchInput');
+const $resizer = document.getElementById('detailResizer');
 
 // ── Window Controls ─────────────────────────────
 document.getElementById('btnMin').onclick =
@@ -55,11 +56,44 @@ document.getElementById('btnOpenRepo').onclick = openRepo;
 document.getElementById('btnWelcomeOpen').onclick = openRepo;
 document.getElementById('btnRefresh').onclick = refresh;
 
+// ── Detail Panel Resizing ────────────────────────
+let isResizing = false;
+
+$resizer.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  $resizer.classList.add('resizing');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+
+  const startX = e.clientX;
+  const startWidth = $detail.getBoundingClientRect().width;
+
+  const onMouseMove = (moveEvent) => {
+    if (!isResizing) return;
+    const deltaX = moveEvent.clientX - startX;
+    const newWidth = Math.max(280, startWidth - deltaX);
+    const maxWidth = window.innerWidth * 0.8;
+    $detail.style.width = Math.min(newWidth, maxWidth) + 'px';
+  };
+
+  const onMouseUp = () => {
+    isResizing = false;
+    $resizer.classList.remove('resizing');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  };
+
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+});
+
 async function openRepo(path) {
   const target = typeof path === 'string' ? path : null;
   const result = await window.octogit.openRepo(target);
   if (!result || result.error) {
-    if (result?.error) alert(result.error);
+    if (result?.error) showToast(result.error, 'error');
     return;
   }
   repoPath = result.path;
@@ -100,6 +134,8 @@ function renderSidebar() {
       `<span class="dot" style="background:${color}"></span>` +
       escHtml(b.name);
     el.onclick = () => scrollToBranch(b.name);
+    el.ondblclick = () => checkoutBranch(b.name);
+    el.title = "Double-click to checkout";
     $branchList.appendChild(el);
   }
 
@@ -108,7 +144,11 @@ function renderSidebar() {
   for (const r of branches.remote) {
     const el = document.createElement('div');
     el.className = 'sidebar-item';
-    el.textContent = r.name.replace(/^remotes\//, '');
+    const shortName = r.name.replace(/^remotes\//, '');
+    el.textContent = shortName;
+    el.onclick = () => scrollToBranch(shortName);
+    el.ondblclick = () => checkoutRemoteBranch(r.name);
+    el.title = "Double-click to checkout";
     $remoteList.appendChild(el);
   }
 
@@ -121,6 +161,8 @@ function renderSidebar() {
       `<span class="dot" style="background:var(--green)">` +
       `</span>${escHtml(t)}`;
     el.onclick = () => scrollToTag(t);
+    el.ondblclick = () => checkoutCommit(t);
+    el.title = "Double-click to checkout";
     $tagList.appendChild(el);
   }
 
@@ -435,6 +477,8 @@ function renderCommitList() {
     row.appendChild(hash);
 
     row.onclick = () => selectCommit(c.hash);
+    row.ondblclick = () => checkoutCommit(c.hash);
+    row.title = "Double-click to checkout commit (detaches HEAD)";
     $commitList.appendChild(row);
   }
 }
@@ -448,8 +492,9 @@ async function selectCommit(hash) {
     r.classList.toggle('selected', r.dataset.hash === hash);
   });
 
-  // Show detail panel
+  // Show detail panel & resizer
   $detail.hidden = false;
+  $resizer.hidden = false;
 
   // Load detail
   const [detail, diff] = await Promise.all([
@@ -551,11 +596,107 @@ function renderDiff(diffText) {
 // ── Close Detail ────────────────────────────────
 document.getElementById('btnCloseDetail').onclick = () => {
   $detail.hidden = true;
+  $resizer.hidden = true;
   selectedHash = null;
   document.querySelectorAll('.commit-row').forEach(
     (r) => r.classList.remove('selected')
   );
 };
+
+// ── Checkout Actions ────────────────────────────
+async function checkoutBranch(name) {
+  showToast(`Checking out branch "${name}"...`, 'info');
+  try {
+    const res = await window.octogit.checkoutBranch(name);
+    if (res && res.success) {
+      showToast(`Checked out branch "${name}" successfully`, 'success');
+      await refresh();
+    } else {
+      showToast(`Error: ${res.error || 'Failed to checkout branch'}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+async function checkoutRemoteBranch(remoteName) {
+  const cleanName = remoteName.replace(/^remotes\/[^\/]+\//, '');
+  const localExists = branches.local.some(b => b.name === cleanName);
+  
+  if (localExists) {
+    await checkoutBranch(cleanName);
+  } else {
+    showToast(`Checking out remote branch "${remoteName}" as local "${cleanName}"...`, 'info');
+    try {
+      const res = await window.octogit.checkoutBranch(cleanName);
+      if (res && res.success) {
+        showToast(`Created and checked out local branch "${cleanName}" tracking "${remoteName}"`, 'success');
+        await refresh();
+      } else {
+        showToast(`Could not auto-track remote branch. Detaching HEAD at "${remoteName}"...`, 'warning');
+        const res2 = await window.octogit.checkoutBranch(remoteName);
+        if (res2 && res2.success) {
+          showToast(`Checked out "${remoteName}" (Detached HEAD)`, 'success');
+          await refresh();
+        } else {
+          showToast(`Error: ${res2.error || 'Failed to checkout'}`, 'error');
+        }
+      }
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    }
+  }
+}
+
+async function checkoutCommit(hash) {
+  const shortHash = hash.substring(0, 7);
+  showToast(`Checking out commit ${shortHash} (detaching HEAD)...`, 'info');
+  try {
+    const res = await window.octogit.checkoutBranch(hash);
+    if (res && res.success) {
+      showToast(`Checked out commit ${shortHash} (Detached HEAD)`, 'warning');
+      await refresh();
+    } else {
+      showToast(`Error: ${res.error || 'Failed to checkout commit'}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+// ── Toast System ────────────────────────────────
+const $toastContainer = document.getElementById('toastContainer');
+
+function showToast(message, type = 'info') {
+  if (!$toastContainer) return;
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  let iconSvg = '';
+  if (type === 'success') {
+    iconSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="var(--green)"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`;
+  } else if (type === 'error') {
+    iconSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="var(--red)"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>`;
+  } else if (type === 'warning') {
+    iconSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="var(--orange)"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>`;
+  } else {
+    iconSvg = `<svg width="14" height="14" viewBox="0 0 16 16" fill="var(--accent)"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>`;
+  }
+
+  toast.innerHTML = `
+    <div class="toast-icon">${iconSvg}</div>
+    <div class="toast-message">${escHtml(message)}</div>
+  `;
+  
+  $toastContainer.appendChild(toast);
+  
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => toast.remove());
+  }, 4000);
+}
 
 // ── Helpers ─────────────────────────────────────
 function escHtml(str) {

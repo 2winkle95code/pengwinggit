@@ -288,7 +288,13 @@ html, body {
   min-width: 0;
 }
 
-.center-panel { flex: 1; }
+.center-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* Welcome */
 #welcome {
@@ -474,15 +480,31 @@ html, body {
   border: 1px solid rgba(210, 153, 34, 0.3);
 }
 
-/* ── Detail Panel ──────────────────────────────── */
 #detailPanel {
   width: var(--detail-width);
-  min-width: var(--detail-width);
+  min-width: 280px;
+  max-width: 80%;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* ── Resizer ───────────────────────────────────── */
+.resizer {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 100;
+  flex-shrink: 0;
+  position: relative;
+  margin-left: -3px;
+  margin-right: -3px;
+  transition: background 0.15s;
+}
+.resizer:hover, .resizer.resizing {
+  background: var(--accent);
 }
 
 .detail-header {
@@ -702,3 +724,68 @@ html, body {
 
 /* ── Utilities ─────────────────────────────────── */
 [hidden] { display: none !important; }
+
+/* ── Toast Notifications ───────────────────────── */
+#toastContainer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  min-width: 280px;
+  max-width: 400px;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+}
+
+.toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast.success {
+  border-left-color: var(--green);
+}
+
+.toast.error {
+  border-left-color: var(--red);
+}
+
+.toast.warning {
+  border-left-color: var(--orange);
+}
+
+.toast.info {
+  border-left-color: var(--accent);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-message {
+  flex: 1;
+  word-break: break-word;
+}

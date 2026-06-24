@@ -7,7 +7,10 @@ on this codebase.
 
 Octogit is a visual git repository viewer built with
 Electron, similar to GitKraken. It was implemented
-entirely by Claude (Anthropic's AI). It displays
+initially by Claude (Anthropic's AI) and enhanced by
+Antigravity (Google DeepMind's AI), who added
+interactive branch checkout, resizable layouts,
+and custom toast notifications. It displays
 commit history as an interactive graph with branch
 topology, diffs, and repository metadata.
 

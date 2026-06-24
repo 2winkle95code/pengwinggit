@@ -8,11 +8,11 @@ branch topology in a clean, dark-themed interface.
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Built by](https://img.shields.io/badge/Built%20by-Claude-blueviolet)
 
-> This project was implemented entirely by
+> This project was implemented initially by
 > [Claude](https://claude.ai) (Anthropic's AI),
-> including the Electron app architecture, git
-> backend, commit graph renderer, dark-themed UI,
-> and all documentation.
+> and co-authored / enhanced by [Antigravity](https://deepmind.google)
+> (Google DeepMind's AI), including interactive branch/tag/commit checkout,
+> resizable panels, a custom toast engine, and layout scrolling corrections.
 
 ## Features
 

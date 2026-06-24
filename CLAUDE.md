@@ -61,7 +61,8 @@ src/
 - **No framework** — Vanilla JS for simplicity and
   zero build step. DOM is manipulated directly.
 - **Canvas graph** — Commit graph is drawn on an HTML5
-  canvas overlaid behind the commit list rows. A lane
+  canvas overlaid on top of the commit list rows (with `pointer-events: none`) 
+  so that row hover highlights do not block the graph nodes. A lane
   assignment algorithm places commits in columns.
 - **GPU disabled** — `app.disableHardwareAcceleration()`
   is called because the app runs on remote X11
@@ -72,6 +73,14 @@ src/
 - **Unique separator** — Commit detail format uses
   `---OCTOGIT-SEP---` to split fields, avoiding
   issues with multi-line commit messages.
+- **Interactive Checkout** — Local/remote branches, tags, and commits can be
+  double-clicked in the sidebar or table to check them out.
+- **Dynamic Highlights** — CSS `color-mix()` dynamically blends a custom
+  `--row-color` property on each commit row to match its branch graph color.
+- **Custom Toasts** — Transition-animated overlay alerts replace standard browser dialogs.
+- **Resizable Panels** — An overlay drag handle (`#detailResizer`) supports dynamic resizing 
+  of the Commit Detail panel.
+
 
 ## Development & Deployment
 

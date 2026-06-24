@@ -142,20 +142,6 @@ npm run build:win
 ```bash
 # Run in dev mode
 npm run dev
-
-# The app disables GPU acceleration by default for
-# compatibility with remote X11 sessions. This has
-# no effect on functionality.
-```
-
-### Remote / Headless Usage
-
-PengwingGit works over SSH with X11 forwarding or on
-remote desktops:
-
-```bash
-# On the remote machine
-DISPLAY=:1 npm start -- /path/to/repo
 ```
 
 ## How It Works

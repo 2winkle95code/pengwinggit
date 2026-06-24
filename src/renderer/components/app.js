@@ -479,8 +479,8 @@ async function selectCommit(hash) {
   // Message
   $detailMsg.textContent = detail.body;
 
-  // Parse stat lines for files
-  const files = parseStatLines(detail.stats);
+  // Files from numstat
+  const files = detail.files || [];
   $fileCount.textContent = `${files.length} files`;
 
   $detailFiles.innerHTML = '';
@@ -506,43 +506,6 @@ async function selectCommit(hash) {
 
   // Show full diff
   if (diff) renderDiff(diff);
-}
-
-function parseStatLines(stats) {
-  const files = [];
-  for (const line of stats) {
-    // e.g. " src/foo.js | 10 ++++----"
-    const match = line.match(
-      /^\s*(.+?)\s*\|\s*(\d+)\s*([+-]*)\s*$/
-    );
-    if (match) {
-      const pluses = (match[3].match(/\+/g) || []).length;
-      const minuses = (match[3].match(/-/g) || []).length;
-      let status = 'M';
-      if (pluses > 0 && minuses === 0) status = 'A';
-      if (minuses > 0 && pluses === 0) status = 'D';
-      files.push({
-        path: match[1].trim(),
-        additions: pluses ? match[2] : '',
-        deletions: minuses ? match[2] : '',
-        status,
-      });
-    } else {
-      // Check for rename or binary
-      const binMatch = line.match(
-        /^\s*(.+?)\s*\|\s*Bin/
-      );
-      if (binMatch) {
-        files.push({
-          path: binMatch[1].trim(),
-          additions: '',
-          deletions: '',
-          status: 'M',
-        });
-      }
-    }
-  }
-  return files;
 }
 
 async function showFileDiff(hash, filePath, el) {

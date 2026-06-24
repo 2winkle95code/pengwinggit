@@ -107,40 +107,51 @@ class GitService {
 
   async getCommitDetail(hash) {
     try {
-      const raw = await this.git.raw([
-        'show',
-        '--stat',
-        '--format=%H%n%P%n%an%n%ae%n%aI%n%cn%n%ce%n%cI%n%D%n%B',
-        hash,
+      const SEP = '---OCTOGIT-SEP---';
+      const fmt = [
+        '%H', '%P', '%an', '%ae', '%aI',
+        '%cn', '%ce', '%cI', '%D', '%B',
+      ].join(`${SEP}`);
+      const [meta, numstat] = await Promise.all([
+        this.git.raw([
+          'show', '-s', `--format=${fmt}`, hash,
+        ]),
+        this.git.raw([
+          'diff-tree', '-r', '--numstat', hash,
+        ]),
       ]);
-      const lines = raw.split('\n');
-      // Body ends at the stat section (first empty line after body)
-      const bodyLines = [];
-      let i = 9; // skip first 9 format lines
-      while (i < lines.length && lines[i] !== '') {
-        bodyLines.push(lines[i]);
-        i++;
-      }
-      // Stat lines follow
-      const statLines = [];
-      for (let j = i + 1; j < lines.length; j++) {
-        if (lines[j].trim()) statLines.push(lines[j].trim());
-      }
+
+      const parts = meta.split(SEP);
+      // Parse numstat: "added\tremoved\tpath"
+      const files = numstat.trim().split('\n')
+        .filter((l) => l && l.includes('\t'))
+        .map((l) => {
+          const [add, del, ...fp] = l.split('\t');
+          const path = fp.join('\t');
+          let status = 'M';
+          if (add !== '-' && del === '0') status = 'A';
+          if (add === '0' && del !== '0') status = 'D';
+          return {
+            path,
+            additions: add === '-' ? 0 : parseInt(add),
+            deletions: del === '-' ? 0 : parseInt(del),
+            status,
+          };
+        });
 
       return {
-        hash: lines[0],
-        parents: lines[1]
-          ? lines[1].split(' ').filter(Boolean)
-          : [],
-        author: lines[2],
-        authorEmail: lines[3],
-        authorDate: lines[4],
-        committer: lines[5],
-        committerEmail: lines[6],
-        committerDate: lines[7],
-        refs: lines[8] || '',
-        body: bodyLines.join('\n').trim(),
-        stats: statLines,
+        hash: parts[0]?.trim() || hash,
+        parents: (parts[1] || '').trim()
+          .split(' ').filter(Boolean),
+        author: (parts[2] || '').trim(),
+        authorEmail: (parts[3] || '').trim(),
+        authorDate: (parts[4] || '').trim(),
+        committer: (parts[5] || '').trim(),
+        committerEmail: (parts[6] || '').trim(),
+        committerDate: (parts[7] || '').trim(),
+        refs: (parts[8] || '').trim(),
+        body: (parts[9] || '').trim(),
+        files,
       };
     } catch {
       return null;

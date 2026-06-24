@@ -393,11 +393,11 @@ html, body {
   border-bottom: 1px solid transparent;
 }
 .commit-row:hover {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--row-color, var(--accent)) 10%, transparent);
 }
 .commit-row.selected {
-  background: var(--bg-active);
-  border-bottom-color: var(--border);
+  background: color-mix(in srgb, var(--row-color, var(--accent)) 16%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--row-color, var(--border)) 30%, transparent);
 }
 
 .cr-graph {

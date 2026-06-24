@@ -408,6 +408,8 @@ function getFilteredCommits() {
 function renderCommitList() {
   const filtered = getFilteredCommits();
   $commitList.innerHTML = '';
+  const { commitCol } = layoutGraph(filtered);
+  const colColor = (col) => COLORS[col % COLORS.length];
 
   for (let i = 0; i < filtered.length; i++) {
     const c = filtered[i];
@@ -416,6 +418,10 @@ function renderCommitList() {
       'commit-row' +
       (c.hash === selectedHash ? ' selected' : '');
     row.dataset.hash = c.hash;
+
+    const col = commitCol[c.hash] ?? 0;
+    const color = colColor(col);
+    row.style.setProperty('--row-color', color);
 
     // Graph spacer (canvas draws behind)
     const graphCell = document.createElement('div');

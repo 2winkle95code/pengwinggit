@@ -72,6 +72,19 @@ octogit/
   package.json
 ```
 
+## Running (Debug / Development)
+
+Run the app directly with Electron without building
+a distributable package:
+
+```bash
+# Open with a specific repository
+npm start -- /path/to/repo
+
+# Or launch and use the Open button in the UI
+npm start
+```
+
 ## Build
 
 Octogit uses

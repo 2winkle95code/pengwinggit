@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────
-   Octogit — Renderer application
+   PengwingGit — Renderer application
    ───────────────────────────────────────────────── */
 
 const COLORS = [
@@ -49,11 +49,11 @@ const $resizer = document.getElementById('detailResizer');
 
 // ── Window Controls ─────────────────────────────
 document.getElementById('btnMin').onclick =
-  () => window.octogit.windowMinimize();
+  () => window.pengwingGit.windowMinimize();
 document.getElementById('btnMax').onclick =
-  () => window.octogit.windowMaximize();
+  () => window.pengwingGit.windowMaximize();
 document.getElementById('btnClose').onclick =
-  () => window.octogit.windowClose();
+  () => window.pengwingGit.windowClose();
 
 // ── Open Repo ───────────────────────────────────
 document.getElementById('btnOpenRepo').onclick = openRepo;
@@ -95,7 +95,7 @@ $resizer.addEventListener('mousedown', (e) => {
 
 async function openRepo(path) {
   const target = typeof path === 'string' ? path : null;
-  const result = await window.octogit.openRepo(target);
+  const result = await window.pengwingGit.openRepo(target);
   if (!result || result.error) {
     if (result?.error) showToast(result.error, 'error');
     return;
@@ -110,11 +110,11 @@ async function openRepo(path) {
 async function refresh() {
   if (!repoPath) return;
   const [log, br, tg, st, status] = await Promise.all([
-    window.octogit.getLog(),
-    window.octogit.getBranches(),
-    window.octogit.getTags(),
-    window.octogit.getStashes(),
-    window.octogit.getStatus(),
+    window.pengwingGit.getLog(),
+    window.pengwingGit.getBranches(),
+    window.pengwingGit.getTags(),
+    window.pengwingGit.getStashes(),
+    window.pengwingGit.getStatus(),
   ]);
   commits = log;
   branches = br;
@@ -616,7 +616,7 @@ async function selectWorkdirFile(filePath, status) {
   $fileCount.textContent = '';
 
   // Get diff for working directory file
-  const diff = await window.octogit.getWorkdirDiff(filePath);
+  const diff = await window.pengwingGit.getWorkdirDiff(filePath);
   renderDiff(diff);
 }
 
@@ -635,8 +635,8 @@ async function selectCommit(hash) {
 
   // Load detail
   const [detail, diff] = await Promise.all([
-    window.octogit.getCommitDetail(hash),
-    window.octogit.getDiff(hash),
+    window.pengwingGit.getCommitDetail(hash),
+    window.pengwingGit.getDiff(hash),
   ]);
 
   if (!detail) return;
@@ -696,7 +696,7 @@ async function showFileDiff(hash, filePath, el) {
   );
   el.classList.add('selected');
 
-  const diff = await window.octogit.getFileDiff(
+  const diff = await window.pengwingGit.getFileDiff(
     hash, filePath
   );
   renderDiff(diff);
@@ -744,7 +744,7 @@ document.getElementById('btnCloseDetail').onclick = () => {
 async function checkoutBranch(name) {
   showToast(`Checking out branch "${name}"...`, 'info');
   try {
-    const res = await window.octogit.checkoutBranch(name);
+    const res = await window.pengwingGit.checkoutBranch(name);
     if (res && res.success) {
       showToast(`Checked out branch "${name}" successfully`, 'success');
       await refresh();
@@ -759,19 +759,19 @@ async function checkoutBranch(name) {
 async function checkoutRemoteBranch(remoteName) {
   const cleanName = remoteName.replace(/^remotes\/[^\/]+\//, '');
   const localExists = branches.local.some(b => b.name === cleanName);
-  
+
   if (localExists) {
     await checkoutBranch(cleanName);
   } else {
     showToast(`Checking out remote branch "${remoteName}" as local "${cleanName}"...`, 'info');
     try {
-      const res = await window.octogit.checkoutBranch(cleanName);
+      const res = await window.pengwingGit.checkoutBranch(cleanName);
       if (res && res.success) {
         showToast(`Created and checked out local branch "${cleanName}" tracking "${remoteName}"`, 'success');
         await refresh();
       } else {
         showToast(`Could not auto-track remote branch. Detaching HEAD at "${remoteName}"...`, 'warning');
-        const res2 = await window.octogit.checkoutBranch(remoteName);
+        const res2 = await window.pengwingGit.checkoutBranch(remoteName);
         if (res2 && res2.success) {
           showToast(`Checked out "${remoteName}" (Detached HEAD)`, 'success');
           await refresh();
@@ -789,7 +789,7 @@ async function checkoutCommit(hash) {
   const shortHash = hash.substring(0, 7);
   showToast(`Checking out commit ${shortHash} (detaching HEAD)...`, 'info');
   try {
-    const res = await window.octogit.checkoutBranch(hash);
+    const res = await window.pengwingGit.checkoutBranch(hash);
     if (res && res.success) {
       showToast(`Checked out commit ${shortHash} (Detached HEAD)`, 'warning');
       await refresh();
@@ -838,7 +838,7 @@ async function showWorkdirFileDiff(filePath, status, el) {
   $fileCount.textContent = '';
 
   // Get diff for working directory file
-  const diff = await window.octogit.getWorkdirDiff(filePath);
+  const diff = await window.pengwingGit.getWorkdirDiff(filePath);
   renderDiff(diff);
 }
 
@@ -923,12 +923,12 @@ const resizeObs = new ResizeObserver(() => {
 resizeObs.observe($container);
 
 // ── Auto-open repo from main process ────────────
-window.octogit.onAutoOpen((repoPath) => {
+window.pengwingGit.onAutoOpen((repoPath) => {
   openRepo(repoPath);
 });
 
 // ── Live repository change detection ────────────
-window.octogit.onRepoChanged(() => {
+window.pengwingGit.onRepoChanged(() => {
   console.log('Repository changed, refreshing...');
   refresh();
 });

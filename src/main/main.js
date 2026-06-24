@@ -22,7 +22,7 @@ function createWindow() {
     height: 900,
     minWidth: 900,
     minHeight: 600,
-    title: 'Octogit',
+    title: 'PengwingGit',
     icon: path.join(__dirname, '..', 'renderer', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,

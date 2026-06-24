@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('octogit', {
+contextBridge.exposeInMainWorld('pengwingGit', {
   openRepo: (path) => ipcRenderer.invoke('open-repo', path),
   getLog: (opts) => ipcRenderer.invoke('get-log', opts),
   getBranches: () => ipcRenderer.invoke('get-branches'),

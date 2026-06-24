@@ -108,7 +108,7 @@ class GitService {
 
   async getCommitDetail(hash) {
     try {
-      const SEP = '---OCTOGIT-SEP---';
+      const SEP = '---PENGWINGGIT-SEP---';
       const fmt = [
         '%H', '%P', '%an', '%ae', '%aI',
         '%cn', '%ce', '%cI', '%D', '%B',

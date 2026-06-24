@@ -1,16 +1,17 @@
-# Octogit — AI Agent Context
+# PengwingGit — AI Agent Context
 
 This file provides context for any AI agent working
 on this codebase.
 
 ## What is this project?
 
-Octogit is a visual git repository viewer built with
-Electron, similar to GitKraken. It was implemented
-initially by Claude (Anthropic's AI) and enhanced by
-Antigravity (Google DeepMind's AI), who added
-interactive branch checkout, resizable layouts,
-and custom toast notifications. It displays
+PengwingGit is a visual git repository viewer built with
+Electron, similar to GitKraken. The name is a tribute to
+Benedict Cumberbatch's famous mispronunciation of "penguin"
+as "pengwing". It was implemented initially by Claude
+(Anthropic's AI) and enhanced by Antigravity (Google
+DeepMind's AI), who added interactive branch checkout,
+resizable layouts, and custom toast notifications. It displays
 commit history as an interactive graph with branch
 topology, diffs, and repository metadata.
 
@@ -33,7 +34,7 @@ src/
                      # - IPC handlers for all git ops
                      # - CLI arg parsing for auto-open
     preload.js       # contextBridge: exposes
-                     # window.octogit API to renderer
+                     # window.pengwingGit API to renderer
     git-service.js   # GitService class wrapping
                      # simple-git for: log, branches,
                      # tags, stashes, commit detail
@@ -71,7 +72,7 @@ src/
   `git diff-tree --numstat` for precise +/- numbers
   instead of parsing `--stat` output.
 - **Unique separator** — Commit detail format uses
-  `---OCTOGIT-SEP---` to split fields, avoiding
+  `---PENGWINGGIT-SEP---` to split fields, avoiding
   issues with multi-line commit messages.
 - **Interactive Checkout** — Local/remote branches, tags, and commits can be
   double-clicked in the sidebar or table to check them out.
@@ -105,16 +106,16 @@ npm run build:linux   # or build:mac / build:win
 ```bash
 # Sync to remote (exclude node_modules and .git)
 rsync -avz --exclude='node_modules' --exclude='.git' \
-  ./ twinkle@192.168.4.43:/home/twinkle/Desktop/2winkle/Tools/octogit/
+  ./ twinkle@192.168.4.43:/home/twinkle/Desktop/2winkle/Tools/pengwinggit/
 
 # Install on remote (use legacy SSL if needed)
 ssh twinkle@192.168.4.43 \
-  "cd /home/twinkle/Desktop/2winkle/Tools/octogit \
+  "cd /home/twinkle/Desktop/2winkle/Tools/pengwinggit \
    && NODE_OPTIONS=--openssl-legacy-provider npm install"
 
 # Run on remote (display is :1, NOT :0)
 ssh twinkle@192.168.4.43 \
-  "cd /home/twinkle/Desktop/2winkle/Tools/octogit \
+  "cd /home/twinkle/Desktop/2winkle/Tools/pengwinggit \
    && DISPLAY=:1 npx electron . /path/to/repo"
 
 # Kill running instance
@@ -133,7 +134,7 @@ ssh twinkle@192.168.4.43 "killall electron"
 ## IPC API
 
 The renderer communicates with the main process
-through `window.octogit`:
+through `window.pengwingGit`:
 
 | Method              | Returns                        |
 |---------------------|--------------------------------|

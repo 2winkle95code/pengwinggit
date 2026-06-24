@@ -1,8 +1,10 @@
-# Octogit
+# PengwingGit
 
 A visual git repository viewer built with Electron.
 Browse commit history, inspect diffs, and visualize
 branch topology in a clean, dark-themed interface.
+
+*A tribute to Benedict Cumberbatch's famous pronunciation of "penguin"*
 
 ![Electron](https://img.shields.io/badge/Electron-35-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -41,8 +43,8 @@ branch topology in a clean, dark-themed interface.
 
 ```bash
 # Clone the repository
-git clone https://github.com/2winkle/octogit.git
-cd octogit
+git clone https://github.com/2winkle/pengwinggit.git
+cd pengwinggit
 
 # Install dependencies
 npm install
@@ -57,7 +59,7 @@ npm start -- /path/to/your/repo
 ## Project Structure
 
 ```
-octogit/
+pengwinggit/
   src/
     main/
       main.js          # Electron main process
@@ -87,7 +89,7 @@ npm start
 
 ## Build
 
-Octogit uses
+PengwingGit uses
 [electron-builder](https://www.electron.build/) to
 produce distributable packages.
 
@@ -111,28 +113,28 @@ Build output is written to the `dist/` directory.
 ```bash
 npm run build:linux
 # Produces:
-#   dist/Octogit-1.0.0.AppImage
-#   dist/octogit_1.0.0_amd64.deb
+#   dist/PengwingGit-1.0.0.AppImage
+#   dist/pengwinggit_1.0.0_amd64.deb
 ```
 
 To install the `.deb`:
 
 ```bash
-sudo dpkg -i dist/octogit_1.0.0_amd64.deb
+sudo dpkg -i dist/pengwinggit_1.0.0_amd64.deb
 ```
 
 ### macOS
 
 ```bash
 npm run build:mac
-# Produces: dist/Octogit-1.0.0.dmg
+# Produces: dist/PengwingGit-1.0.0.dmg
 ```
 
 ### Windows
 
 ```bash
 npm run build:win
-# Produces: dist/Octogit Setup 1.0.0.exe
+# Produces: dist/PengwingGit Setup 1.0.0.exe
 ```
 
 ## Development
@@ -148,7 +150,7 @@ npm run dev
 
 ### Remote / Headless Usage
 
-Octogit works over SSH with X11 forwarding or on
+PengwingGit works over SSH with X11 forwarding or on
 remote desktops:
 
 ```bash
@@ -168,7 +170,7 @@ DISPLAY=:1 npm start -- /path/to/repo
    `show --numstat`, `branch -a`, `stash list`, etc.
 
 3. **Preload** (`preload.js`) exposes a safe
-   `window.octogit` API to the renderer via
+   `window.pengwingGit` API to the renderer via
    `contextBridge`.
 
 4. **Renderer** (`app.js`) fetches data through the

@@ -1,7 +1,7 @@
 {
-  "name": "octogit",
+  "name": "pengwinggit",
   "version": "1.0.0",
-  "description": "A visual git repository viewer",
+  "description": "A visual git repository viewer - A tribute to Benedict Cumberbatch",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
@@ -15,11 +15,11 @@
     "name": "2winkle",
     "email": "dev@2winkle.com"
   },
-  "homepage": "https://github.com/2winkle/octogit",
+  "homepage": "https://github.com/2winkle/pengwinggit",
   "license": "MIT",
   "build": {
-    "appId": "com.2winkle.octogit",
-    "productName": "Octogit",
+    "appId": "com.2winkle.pengwinggit",
+    "productName": "PengwingGit",
     "files": [
       "src/**/*",
       "package.json"

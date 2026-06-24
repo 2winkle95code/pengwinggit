@@ -18,9 +18,12 @@ let commits = [];
 let branches = { current: '', local: [], remote: [] };
 let tags = [];
 let stashes = [];
+let workdirStatus = null;
 let selectedHash = null;
+let selectedWorkdirFile = null;
 let repoPath = null;
 let searchTerm = '';
+let viewMode = 'commits'; // 'commits' or 'workdir'
 
 // ── DOM References ──────────────────────────────
 const $welcome = document.getElementById('welcome');
@@ -35,6 +38,7 @@ const $detailMsg = document.getElementById('detailMessage');
 const $detailFiles = document.getElementById('detailFiles');
 const $detailDiff = document.getElementById('detailDiff');
 const $fileCount = document.getElementById('fileCount');
+const $workdirList = document.getElementById('workdirList');
 const $branchList = document.getElementById('branchList');
 const $remoteList = document.getElementById('remoteList');
 const $tagList = document.getElementById('tagList');
@@ -105,16 +109,18 @@ async function openRepo(path) {
 
 async function refresh() {
   if (!repoPath) return;
-  const [log, br, tg, st] = await Promise.all([
+  const [log, br, tg, st, status] = await Promise.all([
     window.octogit.getLog(),
     window.octogit.getBranches(),
     window.octogit.getTags(),
     window.octogit.getStashes(),
+    window.octogit.getStatus(),
   ]);
   commits = log;
   branches = br;
   tags = tg;
   stashes = st;
+  workdirStatus = status;
   renderSidebar();
   renderCommitList();
   drawGraph();
@@ -122,6 +128,15 @@ async function refresh() {
 
 // ── Sidebar ─────────────────────────────────────
 function renderSidebar() {
+  // Working Directory - just show count, not file list
+  $workdirList.innerHTML = '';
+  if (workdirStatus && !workdirStatus.isClean) {
+    const fileCount = workdirStatus.files ? workdirStatus.files.length : 0;
+    $workdirList.innerHTML = `<div class="workdir-summary">${fileCount} changed file${fileCount !== 1 ? 's' : ''}</div>`;
+  } else {
+    $workdirList.innerHTML = '<div class="workdir-summary">No changes</div>';
+  }
+
   // Branches
   $branchList.innerHTML = '';
   for (const b of branches.local) {
@@ -177,6 +192,11 @@ function renderSidebar() {
 }
 
 function scrollToBranch(name) {
+  // Switch back to commits view when clicking a branch
+  viewMode = 'commits';
+  renderCommitList();
+  drawGraph();
+
   const idx = commits.findIndex(
     (c) => c.refs && c.refs.includes(name)
   );
@@ -184,19 +204,49 @@ function scrollToBranch(name) {
 }
 
 function scrollToTag(name) {
+  // Switch back to commits view when clicking a tag
+  viewMode = 'commits';
+  renderCommitList();
+  drawGraph();
+
   const idx = commits.findIndex(
     (c) => c.refs && c.refs.includes(`tag: ${name}`)
   );
   if (idx >= 0) scrollToCommit(idx);
 }
 
+function showWorkingDirectoryView() {
+  viewMode = 'workdir';
+  selectedHash = null;
+  selectedWorkdirFile = null;
+
+  // Clear commit selections
+  document.querySelectorAll('.commit-row').forEach((r) =>
+    r.classList.remove('selected')
+  );
+
+  // Hide detail panel
+  $detail.hidden = true;
+  $resizer.hidden = true;
+
+  renderCommitList();
+  drawGraph();
+}
+
 function scrollToCommit(idx) {
   $container.scrollTop = idx * ROW_H;
 }
 
-// ── Sidebar Collapsing ──────────────────────────
+// ── Sidebar Collapsing & Working Directory Click ───
 document.querySelectorAll('.section-header').forEach((h) => {
   h.addEventListener('click', () => {
+    // Special handling for working directory - switch to workdir view
+    if (h.dataset.toggle === 'workdir') {
+      showWorkingDirectoryView();
+      return;
+    }
+
+    // Normal collapse/expand behavior for other sections
     h.classList.toggle('collapsed');
     const body = h.nextElementSibling;
     body.classList.toggle('collapsed');
@@ -279,9 +329,16 @@ function layoutGraph(commits) {
 
 // ── Draw Commit Graph on Canvas ─────────────────
 function drawGraph() {
+  // Hide canvas in workdir view
+  if (viewMode === 'workdir') {
+    $canvas.style.display = 'none';
+    return;
+  }
+
+  $canvas.style.display = 'block';
   const filtered = getFilteredCommits();
   if (!filtered.length) return;
-  const { commitCol } = layoutGraph(filtered);
+  const { commitCol} = layoutGraph(filtered);
 
   const dpr = window.devicePixelRatio || 1;
   const w = GRAPH_W;
@@ -406,8 +463,16 @@ function getFilteredCommits() {
 }
 
 function renderCommitList() {
-  const filtered = getFilteredCommits();
   $commitList.innerHTML = '';
+
+  if (viewMode === 'workdir') {
+    // Show working directory files
+    renderWorkdirFiles();
+    return;
+  }
+
+  // Show commits (normal view)
+  const filtered = getFilteredCommits();
   const { commitCol } = layoutGraph(filtered);
   const colColor = (col) => COLORS[col % COLORS.length];
 
@@ -487,6 +552,72 @@ function renderCommitList() {
     row.title = "Double-click to checkout commit (detaches HEAD)";
     $commitList.appendChild(row);
   }
+}
+
+function renderWorkdirFiles() {
+  if (!workdirStatus || workdirStatus.isClean) {
+    $commitList.innerHTML = '<div class="empty-state">No changes in working directory</div>';
+    return;
+  }
+
+  const files = workdirStatus.files || [];
+
+  for (const file of files) {
+    const row = document.createElement('div');
+    row.className = 'workdir-file-row' + (selectedWorkdirFile === file.path ? ' selected' : '');
+
+    // Status label with staged indicator
+    const statusLabel = file.staged ? `${file.status}*` : file.status;
+    const statusText = file.staged ? 'Staged' : 'Unstaged';
+
+    row.innerHTML = `
+      <div class="wf-status ${file.status}" title="${statusText}">${statusLabel}</div>
+      <div class="wf-path" title="${escHtml(file.path)}">${escHtml(file.path)}</div>
+      <div class="wf-type">${file.staged ? 'Staged' : 'Modified'}</div>
+    `;
+
+    row.onclick = () => selectWorkdirFile(file.path, file.status);
+    $commitList.appendChild(row);
+  }
+}
+
+async function selectWorkdirFile(filePath, status) {
+  selectedWorkdirFile = filePath;
+  selectedHash = null;
+
+  // Update selection in list
+  document.querySelectorAll('.workdir-file-row').forEach((r) =>
+    r.classList.remove('selected')
+  );
+  document.querySelectorAll(`.workdir-file-row`).forEach((r) => {
+    if (r.querySelector('.wf-path').textContent === filePath) {
+      r.classList.add('selected');
+    }
+  });
+
+  // Show detail panel
+  $detail.hidden = false;
+  $resizer.hidden = false;
+
+  // Set header
+  $detailMeta.innerHTML = `
+    <span class="label">File</span>
+    <span class="value mono">${escHtml(filePath)}</span>
+    <span class="label">Status</span>
+    <span class="value">${status === 'M' ? 'Modified' :
+                        status === 'A' ? 'Added/Staged' :
+                        status === 'D' ? 'Deleted' :
+                        status === 'U' ? 'Untracked' :
+                        status === 'R' ? 'Renamed' : 'Changed'}</span>
+  `;
+
+  $detailMsg.textContent = 'Uncommitted changes in working directory';
+  $detailFiles.innerHTML = '';
+  $fileCount.textContent = '';
+
+  // Get diff for working directory file
+  const diff = await window.octogit.getWorkdirDiff(filePath);
+  renderDiff(diff);
 }
 
 // ── Select Commit & Show Detail ─────────────────
@@ -670,6 +801,47 @@ async function checkoutCommit(hash) {
   }
 }
 
+// ── Working Directory File Diff ─────────────────
+async function showWorkdirFileDiff(filePath, status, el) {
+  selectedWorkdirFile = filePath;
+  selectedHash = null;
+
+  // Update selection
+  document.querySelectorAll('.workdir-item').forEach((item) =>
+    item.classList.remove('selected')
+  );
+  if (el) el.classList.add('selected');
+
+  // Clear commit row selections
+  document.querySelectorAll('.commit-row').forEach((r) =>
+    r.classList.remove('selected')
+  );
+
+  // Show detail panel
+  $detail.hidden = false;
+  $resizer.hidden = false;
+
+  // Set header
+  $detailMeta.innerHTML = `
+    <span class="label">File</span>
+    <span class="value mono">${escHtml(filePath)}</span>
+    <span class="label">Status</span>
+    <span class="value">${status === 'M' ? 'Modified' :
+                        status === 'A' ? 'Added/Staged' :
+                        status === 'D' ? 'Deleted' :
+                        status === 'U' ? 'Untracked' :
+                        status === 'R' ? 'Renamed' : 'Changed'}</span>
+  `;
+
+  $detailMsg.textContent = 'Uncommitted changes in working directory';
+  $detailFiles.innerHTML = '';
+  $fileCount.textContent = '';
+
+  // Get diff for working directory file
+  const diff = await window.octogit.getWorkdirDiff(filePath);
+  renderDiff(diff);
+}
+
 // ── Toast System ────────────────────────────────
 const $toastContainer = document.getElementById('toastContainer');
 
@@ -753,4 +925,10 @@ resizeObs.observe($container);
 // ── Auto-open repo from main process ────────────
 window.octogit.onAutoOpen((repoPath) => {
   openRepo(repoPath);
+});
+
+// ── Live repository change detection ────────────
+window.octogit.onRepoChanged(() => {
+  console.log('Repository changed, refreshing...');
+  refresh();
 });

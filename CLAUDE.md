@@ -78,8 +78,13 @@ src/
 - **Dynamic Highlights** — CSS `color-mix()` dynamically blends a custom
   `--row-color` property on each commit row to match its branch graph color.
 - **Custom Toasts** — Transition-animated overlay alerts replace standard browser dialogs.
-- **Resizable Panels** — An overlay drag handle (`#detailResizer`) supports dynamic resizing 
+- **Resizable Panels** — An overlay drag handle (`#detailResizer`) supports dynamic resizing
   of the Commit Detail panel.
+- **Live Change Detection** — Watches the `.git` directory using `fs.watch()` and automatically
+  refreshes the UI when commits, branches, or other git operations are detected (500ms debounce).
+- **Working Directory Viewer** — Read-only sidebar section displays uncommitted changes
+  (modified, staged, deleted, untracked files) with color-coded status indicators. Click any
+  file to view its diff in the detail panel.
 
 
 ## Development & Deployment

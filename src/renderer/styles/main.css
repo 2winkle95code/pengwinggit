@@ -279,6 +279,115 @@ html, body {
   flex-shrink: 0;
 }
 
+/* Working Directory Files */
+.workdir-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px 4px 28px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workdir-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.workdir-item.selected {
+  background: var(--bg-active);
+}
+
+.workdir-status {
+  width: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  flex-shrink: 0;
+}
+.workdir-status.M { color: var(--orange); }  /* Modified */
+.workdir-status.A { color: var(--green); }   /* Added/Staged */
+.workdir-status.D { color: var(--red); }     /* Deleted */
+.workdir-status.U { color: var(--text-muted); }  /* Untracked */
+.workdir-status.R { color: var(--purple); }  /* Renamed */
+
+.workdir-path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workdir-empty {
+  padding: 8px 14px 8px 28px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.workdir-summary {
+  padding: 6px 14px 6px 28px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* Working Directory File Rows (in main area) */
+.workdir-file-row {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid transparent;
+}
+.workdir-file-row:hover {
+  background: var(--bg-hover);
+}
+.workdir-file-row.selected {
+  background: var(--bg-active);
+  border-bottom-color: var(--border);
+}
+
+.wf-status {
+  width: 40px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-align: center;
+  flex-shrink: 0;
+}
+.wf-status.M { color: var(--orange); }
+.wf-status.A { color: var(--green); }
+.wf-status.D { color: var(--red); }
+.wf-status.U { color: var(--text-muted); }
+.wf-status.R { color: var(--purple); }
+
+.wf-path {
+  flex: 1;
+  padding-left: 12px;
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-type {
+  width: 100px;
+  padding-left: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  flex-shrink: 0;
+}
+
 /* ── Center / Commit Table ─────────────────────── */
 #center {
   flex: 1;

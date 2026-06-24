@@ -1,5 +1,6 @@
 const simpleGit = require('simple-git');
 const path = require('path');
+const { execSync } = require('child_process');
 
 class GitService {
   constructor(repoPath) {
@@ -191,16 +192,54 @@ class GitService {
 
   async getStatus() {
     try {
-      const status = await this.git.status();
+      // Use porcelain format for precise status information
+      // Format: XY PATH where X=index, Y=worktree
+      // NOTE: Using execSync instead of simple-git to avoid leading whitespace trimming
+      const raw = execSync('git status --porcelain', {
+        cwd: this.repoPath,
+        encoding: 'utf8'
+      });
+
+      if (!raw.trim()) {
+        return { files: [], isClean: true };
+      }
+
+      // Split first, then filter out empty lines (don't trim before split!)
+      const files = raw.split('\n').filter(line => line.length > 0).map(line => {
+        const index = line[0];     // Staging area status
+        const worktree = line[1];  // Working tree status
+        const path = line.substring(3);
+
+        let status = '?';
+        let staged = false;
+
+        // Determine status based on git status codes
+        if (index === 'A') {
+          status = 'A'; // Added to index
+          staged = true;
+        } else if (index === 'M') {
+          status = 'M'; // Modified in index
+          staged = true;
+        } else if (index === 'D') {
+          status = 'D'; // Deleted in index
+          staged = true;
+        } else if (index === 'R') {
+          status = 'R'; // Renamed in index
+          staged = true;
+        } else if (worktree === 'M') {
+          status = 'M'; // Modified in worktree
+        } else if (worktree === 'D') {
+          status = 'D'; // Deleted in worktree
+        } else if (index === '?' && worktree === '?') {
+          status = 'U'; // Untracked
+        }
+
+        return { path, status, staged };
+      });
+
       return {
-        staged: status.staged,
-        modified: status.modified,
-        not_added: status.not_added,
-        deleted: status.deleted,
-        conflicted: status.conflicted,
-        created: status.created,
-        renamed: status.renamed,
-        isClean: status.isClean(),
+        files,
+        isClean: files.length === 0,
       };
     } catch {
       return null;
@@ -244,6 +283,21 @@ class GitService {
       const raw = await this.git.raw([
         'show',
         `${hash || 'HEAD'}:${filePath}`,
+      ]);
+      return raw;
+    } catch {
+      return '';
+    }
+  }
+
+  async getWorkdirDiff(filePath) {
+    try {
+      // Get diff for working directory file (staged or unstaged)
+      const raw = await this.git.raw([
+        'diff',
+        'HEAD',
+        '--',
+        filePath,
       ]);
       return raw;
     } catch {

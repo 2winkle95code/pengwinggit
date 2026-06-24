@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const GitService = require('./git-service');
 
 // Disable GPU acceleration for compatibility with
@@ -12,6 +13,8 @@ app.commandLine.appendSwitch(
 
 let mainWindow;
 let gitService = null;
+let gitWatcher = null;
+let watchDebounceTimer = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -75,6 +78,10 @@ ipcMain.handle('open-repo', async (_event, repoPath) => {
   gitService = new GitService(repoPath);
   const valid = await gitService.isRepo();
   if (!valid) return { error: 'Not a git repository' };
+
+  // Start watching the repository for changes
+  startWatchingRepo(repoPath);
+
   return { path: repoPath };
 });
 
@@ -138,6 +145,11 @@ ipcMain.handle('get-file-content', async (_e, hash, fp) => {
   return gitService.getFileContent(hash, fp);
 });
 
+ipcMain.handle('get-workdir-diff', async (_event, filePath) => {
+  if (!gitService) return '';
+  return gitService.getWorkdirDiff(filePath);
+});
+
 ipcMain.handle('window-minimize', () => {
   mainWindow.minimize();
 });
@@ -152,4 +164,93 @@ ipcMain.handle('window-maximize', () => {
 
 ipcMain.handle('window-close', () => {
   mainWindow.close();
+});
+
+// ── Git Repository Watcher ───────────────────────────
+
+function startWatchingRepo(repoPath) {
+  // Stop any existing watcher
+  stopWatchingRepo();
+
+  const gitDir = path.join(repoPath, '.git');
+
+  // Check if .git exists
+  if (!fs.existsSync(gitDir)) {
+    console.error('.git directory not found:', gitDir);
+    return;
+  }
+
+  try {
+    // Watch the .git directory for changes
+    // We watch specific files/folders that indicate repo changes
+    gitWatcher = fs.watch(
+      gitDir,
+      { recursive: true, persistent: true },
+      (eventType, filename) => {
+        // Ignore temporary files and editor artifacts
+        if (!filename ||
+            filename.includes('.lock') ||
+            filename.includes('~') ||
+            filename.startsWith('.#')) {
+          return;
+        }
+
+        // Only trigger on relevant changes
+        const relevantPaths = [
+          'HEAD',           // Branch switches
+          'refs/',          // Branch/tag updates
+          'logs/',          // Commit history
+          'objects/',       // New commits
+          'index',          // Staging changes
+          'FETCH_HEAD',     // Fetch operations
+          'ORIG_HEAD',      // Merges/rebases
+        ];
+
+        const isRelevant = relevantPaths.some(p =>
+          filename.startsWith(p) || filename === p
+        );
+
+        if (isRelevant) {
+          // Debounce: multiple file changes happen in quick succession
+          // Only trigger refresh after changes settle (500ms)
+          clearTimeout(watchDebounceTimer);
+          watchDebounceTimer = setTimeout(() => {
+            console.log('Git change detected:', filename);
+            notifyRepoChanged();
+          }, 500);
+        }
+      }
+    );
+
+    gitWatcher.on('error', (error) => {
+      console.error('Git watcher error:', error);
+      stopWatchingRepo();
+    });
+
+    console.log('Started watching repository:', repoPath);
+  } catch (error) {
+    console.error('Failed to watch repository:', error);
+  }
+}
+
+function stopWatchingRepo() {
+  if (gitWatcher) {
+    gitWatcher.close();
+    gitWatcher = null;
+  }
+  if (watchDebounceTimer) {
+    clearTimeout(watchDebounceTimer);
+    watchDebounceTimer = null;
+  }
+}
+
+function notifyRepoChanged() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('repo-changed');
+  }
+}
+
+// Clean up watcher on app quit
+app.on('before-quit', () => {
+  stopWatchingRepo();
 });

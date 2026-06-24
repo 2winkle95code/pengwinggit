@@ -17,8 +17,11 @@ contextBridge.exposeInMainWorld('octogit', {
   getFileTree: (hash) => ipcRenderer.invoke('get-file-tree', hash),
   getFileContent: (hash, fp) =>
     ipcRenderer.invoke('get-file-content', hash, fp),
+  getWorkdirDiff: (filePath) =>
+    ipcRenderer.invoke('get-workdir-diff', filePath),
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),
   windowClose: () => ipcRenderer.invoke('window-close'),
   onAutoOpen: (cb) => ipcRenderer.on('auto-open', (_e, p) => cb(p)),
+  onRepoChanged: (cb) => ipcRenderer.on('repo-changed', () => cb()),
 });

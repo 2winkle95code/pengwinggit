@@ -600,15 +600,7 @@ const resizeObs = new ResizeObserver(() => {
 });
 resizeObs.observe($container);
 
-// ── Auto-open repo from CLI args ────────────────
-// If there's a path in the window title or env
-(async () => {
-  // Check if a path was passed via command line
-  const urlParams = new URLSearchParams(
-    window.location.search
-  );
-  const initPath = urlParams.get('repo');
-  if (initPath) {
-    await openRepo(initPath);
-  }
-})();
+// ── Auto-open repo from main process ────────────
+window.octogit.onAutoOpen((repoPath) => {
+  openRepo(repoPath);
+});

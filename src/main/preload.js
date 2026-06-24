@@ -20,4 +20,5 @@ contextBridge.exposeInMainWorld('octogit', {
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),
   windowClose: () => ipcRenderer.invoke('window-close'),
+  onAutoOpen: (cb) => ipcRenderer.on('auto-open', (_e, p) => cb(p)),
 });

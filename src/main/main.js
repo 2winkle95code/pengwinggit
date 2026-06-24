@@ -2,6 +2,14 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const GitService = require('./git-service');
 
+// Disable GPU acceleration for compatibility with
+// remote/headless environments
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch(
+  'disable-software-rasterizer'
+);
+
 let mainWindow;
 let gitService = null;
 
@@ -28,7 +36,23 @@ function createWindow() {
   );
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+
+  // Auto-open repo if passed via command line
+  const args = process.argv.slice(
+    app.isPackaged ? 1 : 2
+  );
+  const repoArg = args.find(
+    (a) => !a.startsWith('-') && !a.startsWith('/')
+      || a.startsWith('/') && !a.startsWith('//')
+  );
+  if (repoArg) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('auto-open', repoArg);
+    });
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

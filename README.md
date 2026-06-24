@@ -6,6 +6,13 @@ branch topology in a clean, dark-themed interface.
 
 ![Electron](https://img.shields.io/badge/Electron-35-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Built by](https://img.shields.io/badge/Built%20by-Claude-blueviolet)
+
+> This project was implemented entirely by
+> [Claude](https://claude.ai) (Anthropic's AI),
+> including the Electron app architecture, git
+> backend, commit graph renderer, dark-themed UI,
+> and all documentation.
 
 ## Features
 

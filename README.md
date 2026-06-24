@@ -16,6 +16,10 @@ branch topology in a clean, dark-themed interface.
 > (Google DeepMind's AI), including interactive branch/tag/commit checkout,
 > resizable panels, a custom toast engine, and layout scrolling corrections.
 
+## Screenshot
+
+![PengwingGit Interface](docs/images/screenshot.png)
+
 ## Features
 
 - **Commit graph** — Canvas-rendered branch topology
@@ -113,7 +117,7 @@ Build output is written to the `dist/` directory.
 ```bash
 npm run build:linux
 # Produces:
-#   dist/PengwingGit-1.0.0.AppImage
+#   dist/PengwingGit-1.0.0-x86_64.AppImage
 #   dist/pengwinggit_1.0.0_amd64.deb
 ```
 

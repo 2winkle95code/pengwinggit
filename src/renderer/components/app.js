@@ -169,24 +169,21 @@ $search.addEventListener('input', (e) => {
 });
 
 // ── Graph Layout Algorithm ──────────────────────
+// Assigns each commit a column (lane). Children pass
+// their lane to the first parent; merge parents get
+// a new or reused lane.
 function layoutGraph(commits) {
-  // Assign each commit a column (lane)
-  const lanes = [];        // column → last hash occupying
-  const commitCol = {};    // hash → column
-  const commitIdx = {};    // hash → row index
+  const lanes = [];       // col → hash that "owns" it
+  const commitCol = {};   // hash → col
+  const commitIdx = {};   // hash → row
 
-  commits.forEach((c, i) => {
-    commitIdx[c.hash] = i;
-  });
+  commits.forEach((c, i) => { commitIdx[c.hash] = i; });
 
   for (let i = 0; i < commits.length; i++) {
     const c = commits[i];
-    if (commitCol[c.hash] !== undefined) continue;
 
-    // Try to find a lane from a child already placed
+    // 1) Has a lane already been reserved for us?
     let col = -1;
-
-    // Find if any parent from a previous commit is us
     for (let l = 0; l < lanes.length; l++) {
       if (lanes[l] === c.hash) {
         col = l;
@@ -194,32 +191,43 @@ function layoutGraph(commits) {
       }
     }
 
+    // 2) No reservation → take first free lane or add one
     if (col === -1) {
-      // New lane
-      col = lanes.length;
-      lanes.push(null);
+      const free = lanes.indexOf(null);
+      col = free !== -1 ? free : lanes.length;
+      if (col === lanes.length) lanes.push(null);
     }
-
     commitCol[c.hash] = col;
 
-    // Route first parent down the same lane
+    // 3) First parent inherits our lane
     if (c.parents.length > 0) {
-      lanes[col] = c.parents[0];
+      const p0 = c.parents[0];
+      // Only reserve if the parent isn't already placed
+      if (commitCol[p0] === undefined) {
+        lanes[col] = p0;
+      } else {
+        lanes[col] = null; // free the lane
+      }
     } else {
       lanes[col] = null;
     }
 
-    // Additional parents get new or reuse lanes
+    // 4) Additional parents (merge sources) get their
+    //    own lane if not already placed or reserved
     for (let p = 1; p < c.parents.length; p++) {
       const ph = c.parents[p];
       if (commitCol[ph] !== undefined) continue;
-      // Check if already reserved in a lane
-      let found = false;
+      let reserved = false;
       for (let l = 0; l < lanes.length; l++) {
-        if (lanes[l] === ph) { found = true; break; }
+        if (lanes[l] === ph) { reserved = true; break; }
       }
-      if (!found) {
-        lanes.push(ph);
+      if (!reserved) {
+        const free = lanes.indexOf(null);
+        if (free !== -1) {
+          lanes[free] = ph;
+        } else {
+          lanes.push(ph);
+        }
       }
     }
   }
@@ -230,10 +238,8 @@ function layoutGraph(commits) {
 // ── Draw Commit Graph on Canvas ─────────────────
 function drawGraph() {
   const filtered = getFilteredCommits();
+  if (!filtered.length) return;
   const { commitCol } = layoutGraph(filtered);
-  const maxCol = Math.max(
-    0, ...Object.values(commitCol)
-  );
 
   const dpr = window.devicePixelRatio || 1;
   const w = GRAPH_W;
@@ -252,54 +258,72 @@ function drawGraph() {
   const hashRow = {};
   filtered.forEach((c, i) => { hashRow[c.hash] = i; });
 
-  // Draw edges first
-  ctx.lineWidth = 2;
+  const colColor = (col) => COLORS[col % COLORS.length];
+
+  // ── Pass 1: Draw edges ────────────────────────
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
   for (let i = 0; i < filtered.length; i++) {
     const c = filtered[i];
-    const col = commitCol[c.hash] || 0;
+    const col = commitCol[c.hash] ?? 0;
     const x = PAD_LEFT + col * COL_W;
     const y = i * ROW_H + ROW_H / 2;
 
-    for (const ph of c.parents) {
+    for (let pi = 0; pi < c.parents.length; pi++) {
+      const ph = c.parents[pi];
       const pRow = hashRow[ph];
       if (pRow === undefined) continue;
-      const pCol = commitCol[ph] || 0;
+      const pCol = commitCol[ph] ?? 0;
       const px = PAD_LEFT + pCol * COL_W;
       const py = pRow * ROW_H + ROW_H / 2;
 
-      const color = COLORS[col % COLORS.length];
+      // Use parent color for merge edges,
+      // child color for first-parent edges
+      const edgeCol = pi === 0 ? col : pCol;
+      const color = colColor(edgeCol);
+
+      // Glow layer
       ctx.strokeStyle = color;
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.15;
+      ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.moveTo(x, y);
+      drawEdge(ctx, x, y, px, py, col === pCol);
+      ctx.stroke();
 
-      if (col === pCol) {
-        // Straight line
-        ctx.lineTo(px, py);
-      } else {
-        // Curved merge/branch line
-        const midY = y + (py - y) * 0.4;
-        ctx.bezierCurveTo(x, midY, px, midY, px, py);
-      }
+      // Main line
+      ctx.globalAlpha = 0.85;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      drawEdge(ctx, x, y, px, py, col === pCol);
       ctx.stroke();
     }
   }
 
-  // Draw nodes on top
+  // ── Pass 2: Draw nodes on top ─────────────────
   ctx.globalAlpha = 1.0;
   for (let i = 0; i < filtered.length; i++) {
     const c = filtered[i];
-    const col = commitCol[c.hash] || 0;
+    const col = commitCol[c.hash] ?? 0;
     const x = PAD_LEFT + col * COL_W;
     const y = i * ROW_H + ROW_H / 2;
-    const color = COLORS[col % COLORS.length];
+    const color = colColor(col);
 
-    // Node circle
+    // Outer glow
+    ctx.beginPath();
+    ctx.arc(x, y, NODE_R + 2, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.2;
+    ctx.fill();
+
+    ctx.globalAlpha = 1.0;
     ctx.beginPath();
     ctx.arc(x, y, NODE_R, 0, Math.PI * 2);
 
     if (c.parents.length > 1) {
-      // Merge commit: filled ring
+      // Merge commit: ring style
       ctx.fillStyle = '#0d1117';
       ctx.fill();
       ctx.strokeStyle = color;
@@ -309,6 +333,22 @@ function drawGraph() {
       ctx.fillStyle = color;
       ctx.fill();
     }
+  }
+}
+
+function drawEdge(ctx, x1, y1, x2, y2, straight) {
+  if (straight) {
+    ctx.lineTo(x2, y2);
+  } else if (y2 > y1) {
+    // Branch going down: curve out then straight
+    const stepY = Math.min(ROW_H, (y2 - y1) * 0.5);
+    ctx.bezierCurveTo(
+      x1, y1 + stepY,
+      x2, y2 - stepY,
+      x2, y2
+    );
+  } else {
+    ctx.lineTo(x2, y2);
   }
 }
 
